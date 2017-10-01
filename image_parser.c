@@ -2,16 +2,60 @@
 // Created by shund on 01.10.2017.
 //
 
+#include <malloc.h>
 #include "image_parser.h"
 
-void get_a_matrix_of_pixels() {
-    char *image_path = {"resource/image.bmp"};
-
-    BmpHeader bmpHeader;
-    BmpImageInfo bmpImageInfo;
-    FILE *read_image = fopen(image_path, "rb");
-    if (read_image != NULL) {
-        fread(&bmpHeader, 1, sizeof(BmpHeader), read_image);
-        fread(&bmpImageInfo, 1, sizeof(BmpImageInfo), read_image);
-    }
+RGB** getMatrixOfPixels(char *image_path) {
+    FILE *readImage = fopen(image_path, "rb");
+    readBmpHeader(readImage);
+    BmpImageInfo bmpImageInfo = readBmpImageInfo(readImage);
+    readBmpImagePalette(readImage, bmpImageInfo.colorsCount);
+    RGB **matrix = readMatrixOfPixels(readImage, bmpImageInfo.width, bmpImageInfo.height);
+    return matrix;
 }
+
+BmpHeader readBmpHeader(FILE *readImage) {
+    BmpHeader bmpHeader;
+    if (readImage != NULL) {
+        fread(&bmpHeader, 1, sizeof(BmpHeader), readImage);
+    }
+    return bmpHeader;
+}
+
+BmpImageInfo readBmpImageInfo(FILE *readImage) {
+    BmpImageInfo bmpImageInfo;
+    if (readImage != NULL) {
+        fread(&bmpImageInfo, 1, sizeof(BmpImageInfo), readImage);
+    }
+    return bmpImageInfo;
+}
+
+RGB* readBmpImagePalette(FILE *readImage, unsigned int colorsCount) {
+    RGB* palette = malloc(sizeof(RGB) * colorsCount);
+    fread(palette, sizeof(RGB), colorsCount, readImage);
+    return palette;
+}
+
+RGB** createMatrixOfPixels(unsigned int imageWidth, unsigned int imageHeight) {
+    RGB **matrixOfPixels = malloc(sizeof(RGB*) * imageHeight);
+    for (int heightIndex = 0; heightIndex < imageHeight; heightIndex++) {
+        matrixOfPixels[heightIndex] = malloc(sizeof(RGB) * imageWidth);
+    }
+    return matrixOfPixels;
+}
+
+RGB** readMatrixOfPixels(FILE *readImage, unsigned int imageWidth, unsigned int imageHeight) {
+    RGB **matrixOfPixels = createMatrixOfPixels(imageWidth, imageHeight);
+    RGB *pixel = malloc(sizeof(RGB*));
+    for (int indexHeight = 0; indexHeight < imageHeight; indexHeight++) {
+        for (int indexWidth = 0; indexWidth < imageWidth; indexWidth++) {
+            fread(pixel, 1, sizeof(RGB), readImage);
+            matrixOfPixels[indexHeight][indexWidth].red = pixel->red;
+            matrixOfPixels[indexHeight][indexWidth].green = pixel->green;
+            matrixOfPixels[indexHeight][indexWidth].blue = pixel->blue;
+        }
+    }
+    return matrixOfPixels;
+}
+
+

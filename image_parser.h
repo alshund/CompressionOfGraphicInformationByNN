@@ -11,29 +11,44 @@
 
 #include <stdio.h>
 
+#pragma pack(push, 2)
 typedef struct
 {
-    char signature[2];
-    unsigned int fileSize;
-    unsigned int reserved;
+    unsigned short int type;
+    unsigned int size;
+    unsigned short int reserved1;
+    unsigned short int reserved2;
     unsigned int offset;
 } BmpHeader;
 
 typedef struct
 {
-    unsigned int headerSize;
-    unsigned int width;
-    unsigned int height;
+    int headerSize;
+    int width;
+    int height;
     unsigned short planeCount;
-    unsigned short bitDepth;
+    unsigned short bitsPerPixel;
     unsigned int compression;
-    unsigned int compressedImageSize;
-    unsigned int horizontalResolution;
-    unsigned int verticalResolution;
+    unsigned int imageSize;
+    int xResolution;
+    int yResolution;
     unsigned int colorsCount;
     unsigned int importantColors;
 
 } BmpImageInfo;
 
-void get_a_matrix_of_pixels();
+typedef struct {
+    unsigned char red;
+    unsigned char green;
+    unsigned char blue;
+    unsigned char junk;
+} RGB;
+#pragma pack(pop)
+
+RGB** getMatrixOfPixels(char *imagePath);
+BmpHeader readBmpHeader(FILE *readImage);
+BmpImageInfo readBmpImageInfo(FILE *readImage);
+RGB* readBmpImagePalette(FILE *readImage, unsigned int colorsCount);
+RGB** createMatrixOfPixels(unsigned int imageWidth, unsigned int imageHeight);
+RGB** readMatrixOfPixels(FILE *readImage, unsigned int imageWidth, unsigned int imageHeight);
 #endif //COMPRESSIONOFGRAPHICINFORMATIONBYNN_IMAGEPARSER_H
