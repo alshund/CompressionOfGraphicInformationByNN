@@ -45,7 +45,14 @@ typedef struct {
 } RGB;
 #pragma pack(pop)
 
-RGB** getMatrixOfPixels(char *imagePath);
+typedef struct {
+    RGB **matrixOfPixels;
+    unsigned int matrixHeight;
+    unsigned int matrixWidth;
+} MatrixOfImage;
+
+MatrixOfImage* getMatrixOfImage(char *imagePath);
+RGB **getMatrixOfPixels(char *imagePath);
 BmpHeader readBmpHeader(FILE *readImage);
 BmpImageInfo readBmpImageInfo(FILE *readImage);
 RGB* readBmpImagePalette(FILE *readImage, unsigned int colorsCount);

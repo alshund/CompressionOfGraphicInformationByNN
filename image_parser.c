@@ -5,13 +5,22 @@
 #include <malloc.h>
 #include "image_parser.h"
 
-RGB** getMatrixOfPixels(char *image_path) {
-    FILE *readImage = fopen(image_path, "rb");
+BmpImageInfo bmpImageInfo;
+
+MatrixOfImage* getMatrixOfImage(char *imagePath) {
+    MatrixOfImage *matrixOfImage = malloc(sizeof(MatrixOfImage));
+    matrixOfImage->matrixOfPixels = getMatrixOfPixels(imagePath);
+    matrixOfImage->matrixHeight = bmpImageInfo.height;
+    matrixOfImage->matrixWidth = bmpImageInfo.width;
+    return matrixOfImage;
+}
+
+RGB **getMatrixOfPixels(char *imagePath) {
+    FILE *readImage = fopen(imagePath, "rb");
     readBmpHeader(readImage);
-    BmpImageInfo bmpImageInfo = readBmpImageInfo(readImage);
+    bmpImageInfo = readBmpImageInfo(readImage);
     readBmpImagePalette(readImage, bmpImageInfo.colorsCount);
-    RGB **matrix = readMatrixOfPixels(readImage, bmpImageInfo.width, bmpImageInfo.height);
-    return matrix;
+    return readMatrixOfPixels(readImage, bmpImageInfo.height, bmpImageInfo.width);
 }
 
 BmpHeader readBmpHeader(FILE *readImage) {
@@ -36,7 +45,7 @@ RGB* readBmpImagePalette(FILE *readImage, unsigned int colorsCount) {
     return palette;
 }
 
-RGB** createMatrixOfPixels(unsigned int imageWidth, unsigned int imageHeight) {
+RGB** createMatrixOfPixels(unsigned int imageHeight, unsigned int imageWidth) {
     RGB **matrixOfPixels = malloc(sizeof(RGB*) * imageHeight);
     for (int heightIndex = 0; heightIndex < imageHeight; heightIndex++) {
         matrixOfPixels[heightIndex] = malloc(sizeof(RGB) * imageWidth);
@@ -44,7 +53,7 @@ RGB** createMatrixOfPixels(unsigned int imageWidth, unsigned int imageHeight) {
     return matrixOfPixels;
 }
 
-RGB** readMatrixOfPixels(FILE *readImage, unsigned int imageWidth, unsigned int imageHeight) {
+RGB** readMatrixOfPixels(FILE *readImage, unsigned int imageHeight, unsigned int imageWidth) {
     RGB **matrixOfPixels = createMatrixOfPixels(imageWidth, imageHeight);
     RGB *pixel = malloc(sizeof(RGB*));
     for (int indexHeight = 0; indexHeight < imageHeight; indexHeight++) {
@@ -55,6 +64,7 @@ RGB** readMatrixOfPixels(FILE *readImage, unsigned int imageWidth, unsigned int 
             matrixOfPixels[indexHeight][indexWidth].blue = pixel->blue;
         }
     }
+    fclose(readImage);
     return matrixOfPixels;
 }
 

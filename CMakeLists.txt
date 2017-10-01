@@ -3,5 +3,5 @@ project(CompressionOfGraphicInformationByNN)
 
 set(CMAKE_C_STANDARD 99)
 
-set(SOURCE_FILES main.c image_parser.h image_parser.c)
+set(SOURCE_FILES main.c image_parser.h image_parser.c compressionNN.c compressionNN.h)
 add_executable(CompressionOfGraphicInformationByNN ${SOURCE_FILES})
