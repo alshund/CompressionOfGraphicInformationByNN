@@ -47,8 +47,8 @@ typedef struct {
 
 typedef struct {
     RGB **matrixOfPixels;
-    unsigned int matrixHeight;
-    unsigned int matrixWidth;
+    unsigned int height;
+    unsigned int width;
 } MatrixOfImage;
 
 MatrixOfImage* getMatrixOfImage(char *imagePath);

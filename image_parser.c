@@ -10,8 +10,8 @@ BmpImageInfo bmpImageInfo;
 MatrixOfImage* getMatrixOfImage(char *imagePath) {
     MatrixOfImage *matrixOfImage = malloc(sizeof(MatrixOfImage));
     matrixOfImage->matrixOfPixels = getMatrixOfPixels(imagePath);
-    matrixOfImage->matrixHeight = bmpImageInfo.height;
-    matrixOfImage->matrixWidth = bmpImageInfo.width;
+    matrixOfImage->height = bmpImageInfo.height;
+    matrixOfImage->width = bmpImageInfo.width;
     return matrixOfImage;
 }
 
@@ -20,7 +20,9 @@ RGB **getMatrixOfPixels(char *imagePath) {
     readBmpHeader(readImage);
     bmpImageInfo = readBmpImageInfo(readImage);
     readBmpImagePalette(readImage, bmpImageInfo.colorsCount);
-    return readMatrixOfPixels(readImage, bmpImageInfo.height, bmpImageInfo.width);
+    RGB **matrixOfPixels = readMatrixOfPixels(readImage, bmpImageInfo.height, bmpImageInfo.width);
+    fclose(readImage);
+    return matrixOfPixels;
 }
 
 BmpHeader readBmpHeader(FILE *readImage) {
@@ -64,7 +66,6 @@ RGB** readMatrixOfPixels(FILE *readImage, unsigned int imageHeight, unsigned int
             matrixOfPixels[indexHeight][indexWidth].blue = pixel->blue;
         }
     }
-    fclose(readImage);
     return matrixOfPixels;
 }
 
