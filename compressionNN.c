@@ -6,41 +6,93 @@
 #include <stdlib.h>
 #include <time.h>
 #include "compressionNN.h"
+#include "image_parser.h"
 
-void startCompression(char *imagePath, float rectangleHeight, float rectangleWidth) {
+void startCompression(char *imagePath, unsigned int rectangleHeight, unsigned int rectangleWidth) {
     MatrixOfImage *matrixOfImage = getMatrixOfImage(imagePath);
-    Matrix *X = createMatrixX(matrixOfImage);
-    Matrix *W = createMatrixW(matrixOfImage->width * 3, matrixOfImage->width * 6);
-    Matrix *Y = createMatrixY(X, W);
-    Matrix *_W = createMatrix_W(W);
-    Matrix *_X = createMatrix_X(Y, _W);
-    double E = getDeviation(X, _X);
-    printf("%f\n", E);
+    Matrix *X = createMatrixX(matrixOfImage, rectangleHeight, rectangleWidth);
 
+    printf("%f\n", X->mas[0][0]);
 
+    int blockHeight = (matrixOfImage->height / rectangleHeight) * (matrixOfImage->width / rectangleWidth);
+    double **mass = malloc(sizeof(double*) * blockHeight);
+    int bHeight = matrixOfImage->height / rectangleHeight;
+    int bWidth = matrixOfImage->width / rectangleWidth;
+    int bCurrentHeight = -1;
+    for (int bHeightIndex = 0; bHeightIndex < bHeight; bHeightIndex++) {
+
+        int startRecHeightIndex = rectangleHeight * bHeightIndex;
+        int finalRecHeightIndex = startRecHeightIndex + rectangleHeight;
+
+        for (int bWidthIndex = 0; bWidthIndex < bWidth; bWidthIndex++) {
+
+            int statRecWidthIndex = rectangleWidth * bWidthIndex;
+            int finalRecWidthIndex = statRecWidthIndex + rectangleWidth;
+
+            bCurrentHeight++;
+
+            mass[bCurrentHeight] = malloc(sizeof(double) * rectangleHeight * rectangleWidth * 3);
+            int bCurrentWidth = 0;
+
+            for (int recHeightIndex = startRecHeightIndex; recHeightIndex < finalRecHeightIndex; recHeightIndex++) {
+
+                for (int recWidthIndex = statRecWidthIndex; recWidthIndex < finalRecWidthIndex; recWidthIndex++) {
+                    mass[bCurrentHeight][bCurrentWidth++] = getConvertColor(matrixOfImage->matrixOfPixels[recHeightIndex][recWidthIndex].red);
+                    mass[bCurrentHeight][bCurrentWidth++] = getConvertColor(matrixOfImage->matrixOfPixels[recHeightIndex][recWidthIndex].green);
+                    mass[bCurrentHeight][bCurrentWidth++] = getConvertColor(matrixOfImage->matrixOfPixels[recHeightIndex][recWidthIndex].blue);
+                }
+            }
+        }
+    }
+    printf("%f\n", mass[0][0]);
+
+//    Matrix *W = createMatrixW(matrixOfImage->width * 3, matrixOfImage->width * 6);
+//    Matrix *Y = createMatrixY(X, W);
+//    Matrix *_W = createMatrix_W(W);
+//    Matrix *_X = createMatrix_X(Y, _W);
+//    double E = getDeviation(X, _X);
+//    printf("%f\n", E);
 }
 
-Matrix* createMatrixX(MatrixOfImage *matrixOfImage){
+Matrix* createMatrixX(MatrixOfImage *matrixOfImage, int rectangleHeight, int rectangleWidth){
     Matrix *X = malloc(sizeof(Matrix));
-    X->height = matrixOfImage->height;
-    X->width = matrixOfImage->width * 3;
-    X->mas = createMasX(matrixOfImage->matrixOfPixels, X->height, X->width);
+    X->height = matrixOfImage->height / rectangleHeight * matrixOfImage->width / rectangleWidth;
+    X->width = rectangleHeight * rectangleWidth * 3;
+    X->mas = createMasX(matrixOfImage, X->height, X->width, rectangleHeight, rectangleWidth);
     return X;
 }
 
-double** createMasX(RGB **matrixOfPixels, int height, int width) {
+double** createMasX(MatrixOfImage *matrixOfImage, int height, int width, int rectangleHeight, int rectangleWidth) {
     double **X = malloc(sizeof(double*) * height);
-    for (int indexHeight = 0; indexHeight < height; indexHeight++) {
-        int pWidthIndex = 0;
-        X[indexHeight] = malloc(sizeof(double) * width);
-        for (int indexWidth = 0; indexWidth < width / 3; indexWidth++) {
-            X[indexHeight][pWidthIndex++] = getConvertColor(matrixOfPixels[indexHeight][indexWidth].red);
-            X[indexHeight][pWidthIndex++] = getConvertColor(matrixOfPixels[indexHeight][indexWidth].green);
-            X[indexHeight][pWidthIndex++] = getConvertColor(matrixOfPixels[indexHeight][indexWidth].blue);
+    int bHeight = matrixOfImage->height / rectangleHeight;
+    int bWidth = matrixOfImage->width / rectangleWidth;
+    int bCurrentHeight = 0;
 
+    for (int bHeightIndex = 0; bHeightIndex < bHeight; bHeightIndex++) {
+        int startRecHeight = rectangleHeight * bHeightIndex;
+        int finalRecHeight = startRecHeight + rectangleHeight;
+
+        for (int bWidthIndex = 0; bWidthIndex < bWidth; bWidthIndex++) {
+            int statRecWidth = rectangleWidth * bWidthIndex;
+            int finalRecWidth = statRecWidth + rectangleWidth;
+            X[bCurrentHeight] = malloc(sizeof(double) * width);
+            X[bCurrentHeight++] = createBlock(matrixOfImage->matrixOfPixels, startRecHeight, finalRecHeight, statRecWidth, finalRecWidth, width);
         }
     }
     return X;
+}
+
+double* createBlock(RGB **matrixOfPixels, int startHeight, int finalHeight, int startWidth, int finalWidth, int width) {
+    double *block = malloc(sizeof(double) * width);
+    int widthIndex = 0;
+    for (int recHeightIndex = startHeight; recHeightIndex < finalHeight; recHeightIndex++) {
+        for (int recWidthIndex = startWidth; recWidthIndex < finalWidth; recWidthIndex++) {
+            block[widthIndex++] = getConvertColor(matrixOfPixels[recHeightIndex][recWidthIndex].red);
+            block[widthIndex++] = getConvertColor(matrixOfPixels[recHeightIndex][recWidthIndex].green);
+            block[widthIndex++] = getConvertColor(matrixOfPixels[recHeightIndex][recWidthIndex].blue);
+        }
+    }
+    return block;
 }
 
 double getConvertColor(unsigned char color) {

@@ -14,10 +14,11 @@ typedef struct {
     unsigned int width;
 } Matrix;
 
-void startCompression(char *image_path, float rectangleHeight, float rectangleWidth);
+void startCompression(char *image_path, unsigned int rectangleHeight, unsigned int rectangleWidth);
 
-Matrix* createMatrixX(MatrixOfImage *matrixOfImage);
-double** createMasX(RGB **matrixOfPixels, int height, int width);
+Matrix* createMatrixX(MatrixOfImage *matrixOfImage, int rectangleHeight, int rectangleWidth);
+double** createMasX(MatrixOfImage *matrixOfImage, int height, int width, int rectangleHeight, int recTangleWidth);
+double* createBlock(RGB **matrixOfPixels, int startHeight, int finalHeight, int startWidth, int finalWidth, int width);
 double getConvertColor(unsigned char color);
 double getRandom(double min, double max);
 
