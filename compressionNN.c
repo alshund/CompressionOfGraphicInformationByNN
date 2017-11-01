@@ -5,51 +5,26 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include "compressionNN.h"
 #include "image_parser.h"
 
 void startCompression(char *imagePath, unsigned int rectangleHeight, unsigned int rectangleWidth) {
     MatrixOfImage *matrixOfImage = getMatrixOfImage(imagePath);
+
     Matrix *X = createMatrixX(matrixOfImage, rectangleHeight, rectangleWidth);
 
-    printf("%f\n", X->mas[0][0]);
+    Matrix *W = createMatrixW(X->width, 15);
 
-    int blockHeight = (matrixOfImage->height / rectangleHeight) * (matrixOfImage->width / rectangleWidth);
-    double **mass = malloc(sizeof(double*) * blockHeight);
-    int bHeight = matrixOfImage->height / rectangleHeight;
-    int bWidth = matrixOfImage->width / rectangleWidth;
-    int bCurrentHeight = -1;
-    for (int bHeightIndex = 0; bHeightIndex < bHeight; bHeightIndex++) {
+    Matrix *Y = createMatrixY(X, W);
 
-        int startRecHeightIndex = rectangleHeight * bHeightIndex;
-        int finalRecHeightIndex = startRecHeightIndex + rectangleHeight;
+    Matrix *_W = createTransposedMatrix(W);
 
-        for (int bWidthIndex = 0; bWidthIndex < bWidth; bWidthIndex++) {
+    Matrix *_X = createMatrix_X(Y, _W);
 
-            int statRecWidthIndex = rectangleWidth * bWidthIndex;
-            int finalRecWidthIndex = statRecWidthIndex + rectangleWidth;
+    Matrix *dX = createMatrix_X(Y, _W);
 
-            bCurrentHeight++;
-
-            mass[bCurrentHeight] = malloc(sizeof(double) * rectangleHeight * rectangleWidth * 3);
-            int bCurrentWidth = 0;
-
-            for (int recHeightIndex = startRecHeightIndex; recHeightIndex < finalRecHeightIndex; recHeightIndex++) {
-
-                for (int recWidthIndex = statRecWidthIndex; recWidthIndex < finalRecWidthIndex; recWidthIndex++) {
-                    mass[bCurrentHeight][bCurrentWidth++] = getConvertColor(matrixOfImage->matrixOfPixels[recHeightIndex][recWidthIndex].red);
-                    mass[bCurrentHeight][bCurrentWidth++] = getConvertColor(matrixOfImage->matrixOfPixels[recHeightIndex][recWidthIndex].green);
-                    mass[bCurrentHeight][bCurrentWidth++] = getConvertColor(matrixOfImage->matrixOfPixels[recHeightIndex][recWidthIndex].blue);
-                }
-            }
-        }
-    }
-    printf("%f\n", mass[0][0]);
-
-//    Matrix *W = createMatrixW(matrixOfImage->width * 3, matrixOfImage->width * 6);
-//    Matrix *Y = createMatrixY(X, W);
-//    Matrix *_W = createMatrix_W(W);
-//    Matrix *_X = createMatrix_X(Y, _W);
+    startLearn(X, W, Y, _W, _X, dX);
 //    double E = getDeviation(X, _X);
 //    printf("%f\n", E);
 }
@@ -127,38 +102,23 @@ Matrix* createMatrixY(Matrix *X, Matrix *W) {
     Matrix *Y = malloc(sizeof(Matrix));
     Y->height = X->height;
     Y->width = W->width;
-    Y->mas = multiplication(X->mas, W->mas, Y->height, Y->width, X->width);
+    Y->mas = malloc(sizeof(double) * Y->height);
+    for (int indexHeight = 0; indexHeight < Y->height; indexHeight++) {
+        Y->mas[indexHeight] = malloc(sizeof(double) * Y->width);
+    }
+//            multiplication(X->mas, W->mas, Y->height, Y->width, X->width);
     return Y;
 }
 
-double** multiplication(double **X, double **W, int height, int width, int iterations) {
-    double **Y = malloc(sizeof(double*) * height);
-    for (int heightIndex = 0; heightIndex < height; heightIndex++) {
-        Y[heightIndex] = malloc(sizeof(double) * width);
-        for (int widthIndex = 0; widthIndex < width; widthIndex++) {
-            Y[heightIndex][widthIndex] = getSum(X, W, heightIndex, widthIndex, iterations);
-        }
-    }
-    return Y;
-}
-
-double getSum(double **X, double **W, int xHeightIndex, int wWidthIndex, int iterations) {
-    double sum = 0;
-    for (int indexIterations = 0; indexIterations < iterations; indexIterations++) {
-        sum += X[xHeightIndex][indexIterations] * W[indexIterations][wWidthIndex];
-    }
-    return sum;
-}
-
-Matrix* createMatrix_W(Matrix *W) {
+Matrix* createTransposedMatrix(Matrix *W) {
     Matrix *_W = malloc(sizeof(Matrix));
     _W->height = W->width;
     _W->width = W->height;
-    _W->mas = createMas_W(W->mas, _W->height, _W->width);
+    _W->mas = transposed(W->mas, _W->height, _W->width);
     return _W;
 }
 
-double** createMas_W(double **W, int height, int width) {
+double** transposed(double **W, int height, int width) {
     double **_W = malloc(sizeof(double*) * height);
     for (int indexHeight = 0; indexHeight < height; indexHeight++) {
         _W[indexHeight] = malloc(sizeof(double) * width);
@@ -173,19 +133,153 @@ Matrix* createMatrix_X(Matrix *Y, Matrix *_W) {
     Matrix *_X = malloc(sizeof(Matrix));
     _X->height = Y->height;
     _X->width = _W->width;
-    _X->mas = multiplication(Y->mas, _W->mas, _X->height, _W->width, Y->width);
+    _X->mas = malloc(sizeof(double) * _X->height);
+    for (int indexHeight = 0; indexHeight < _X->height; indexHeight++) {
+        _X->mas[indexHeight] = malloc(sizeof(double) * _X->width);
+    }
+//            multiplication(Y->mas, _W->mas, _X->height, _W->width, Y->width);
     return _X;
 }
 
-double getDeviation(Matrix *X, Matrix *_X) {
+double getDeviation(Matrix *dX) {
     double E = 0.0;
-    for (int indexHeight = 0; indexHeight < X->height; indexHeight++) {
-        for (int indexWidth = 0; indexWidth < X->width; indexWidth++) {
-            double dX = _X->mas[indexHeight][indexWidth] - X->mas[indexHeight][indexWidth];
-            E += dX * dX;
+    for (int heightIndex = 0; heightIndex < dX->height; heightIndex++) {
+        for (int widthIndex = 0; widthIndex < dX->width; widthIndex++) {
+            E += pow(dX->mas[heightIndex][widthIndex], 2);
         }
     }
     return E;
+}
+
+void startLearn(Matrix *X, Matrix *W, Matrix *Y, Matrix *_W, Matrix *_X, Matrix *dX) {
+    double dev;
+    double *mass = malloc(sizeof(double) * _W->height);
+    int iteration = 0;
+    do {
+        printf("Iteration %d\n", iteration++);
+        for (int heightIndex = 0; heightIndex < X->height; heightIndex++) {
+            if (iteration == 3985) {
+                printf("");
+            }
+            adjustmentY(Y, heightIndex, X, W);
+            adjustment_X(_X, heightIndex, Y, _W);
+            adjustment_dX(dX, heightIndex, _X, X);
+            adjustment_W(_W, heightIndex, Y, dX);
+            adjustmentW(W, heightIndex, X, dX, _W, mass);
+
+//            Y->mas[heightIndex] = multiplication(X->mas[heightIndex], W->mas, W->width, X->width);
+//            _X->mas[heightIndex] = multiplication(Y->mas[heightIndex], _W->mas, _W->width, Y->width);
+//            dX->mas[heightIndex] = difference(X->mas[heightIndex], _X->mas[heightIndex], X->width);
+//            adjustmentSecondLayer(_W, Y->mas[heightIndex], dX->mas[heightIndex]);
+//            adjustmentFirstLayer(W, X->mas[heightIndex], dX->mas[heightIndex], _W);
+        }
+        dev = getDeviation(dX);
+        printf("%f\n", dev);
+    } while(dev >= 0.1 * W->width);
+    printf("%f\n%f\n", X->mas[0][0], _X->mas[0][0]);
+}
+
+void adjustmentY(Matrix *Y, int currentBlock, Matrix *X, Matrix *W) {
+    for (int neuronIndex = 0; neuronIndex < W->width; neuronIndex++) {
+        Y->mas[currentBlock][neuronIndex] = 0.0;
+        for (int blockIndex = 0; blockIndex < W->height; blockIndex++) {
+            Y->mas[currentBlock][neuronIndex] += X->mas[currentBlock][blockIndex] * W->mas[blockIndex][neuronIndex];
+        }
+    }
+}
+
+void adjustment_X(Matrix *_X, int currentBlock, Matrix *Y, Matrix *_W) {
+    for (int pixelIndex = 0; pixelIndex < _W->width; pixelIndex++) {
+        _X->mas[currentBlock][pixelIndex] = 0.0;
+        for (int blockIndex = 0; blockIndex < _W->height; blockIndex++) {
+            _X->mas[currentBlock][pixelIndex] += Y->mas[currentBlock][blockIndex] * _W->mas[blockIndex][pixelIndex];
+        }
+    }
+}
+
+void adjustment_dX(Matrix *dX, int currentBlock, Matrix *_X, Matrix *X) {
+    for (int widthIndex = 0; widthIndex < X->width; widthIndex++) {
+        dX->mas[currentBlock][widthIndex] = _X->mas[currentBlock][widthIndex] - X->mas[currentBlock][widthIndex];
+    }
+}
+
+void adjustment_W(Matrix *_W, int currentBlock, Matrix *Y, Matrix *dX) {
+    double adaptive = createAdaptive(Y->mas[currentBlock], Y->width);
+    for (int indexHeight = 0; indexHeight < _W->height; indexHeight++) {
+        for (int indexWidth = 0; indexWidth < _W->width; indexWidth++) {
+            _W->mas[indexHeight][indexWidth] -= adaptive * Y->mas[currentBlock][indexHeight] * dX->mas[currentBlock][indexWidth];
+        }
+    }
+}
+
+void adjustmentW(Matrix *W, int currentBlock, Matrix *X, Matrix *dX, Matrix *_W, double *mass) {
+    double adaptive = createAdaptive(X->mas[currentBlock], X->width);
+
+    for (int indexHeight = 0; indexHeight < _W->height; indexHeight++) {
+        mass[indexHeight] = 0.0;
+        for (int indexWidth = 0; indexWidth < _W->width; indexWidth++) {
+            mass[indexHeight] += dX->mas[currentBlock][indexWidth] * _W->mas[indexHeight][indexWidth];
+        }
+    }
+
+    for (int heightIndex = 0; heightIndex < W->height; heightIndex++) {
+        for (int widthIndex = 0; widthIndex < W->width; widthIndex++) {
+            W->mas[heightIndex][widthIndex] -= adaptive * X->mas[currentBlock][heightIndex] * mass[widthIndex];
+        }
+    }
+}
+
+
+double* multiplication(double *X, double **W, int width, int iterations) {
+    double *multiplication = malloc(sizeof(double) * width);
+    for (int widthIndex = 0; widthIndex < width; widthIndex++) {
+        multiplication[widthIndex] = getSum(X, W, widthIndex, iterations);
+    }
+    return multiplication;
+}
+
+double getSum(double *X, double **W, int wWidthIndex, int iterations) {
+    double sum = 0;
+    for (int indexIterations = 0; indexIterations < iterations; indexIterations++) {
+        sum = sum + X[indexIterations] * W[indexIterations][wWidthIndex];
+    }
+    return sum;
+}
+
+double* difference(double *X, double *_X, int width) {
+    double *diff = malloc(sizeof(double) * width);
+    for (int widthIndex = 0; widthIndex < width; widthIndex++) {
+        diff[widthIndex] = _X[widthIndex] - X[widthIndex];
+    }
+    return diff;
+}
+
+void adjustmentFirstLayer(Matrix *W, double *X, double *dX, Matrix *_W) {
+    double adaptive = createAdaptive(X, W->height);
+    Matrix *transposed_W = createTransposedMatrix(_W);
+    double *mass = multiplication(dX, transposed_W->mas, transposed_W->width, W->height);
+    for (int heightIndex = 0; heightIndex < W->height; heightIndex++) {
+        for (int widthIndex = 0; widthIndex < W->width; widthIndex++) {
+            W->mas[heightIndex][widthIndex] -= adaptive * X[heightIndex] * mass[widthIndex];
+        }
+    }
+}
+
+void adjustmentSecondLayer(Matrix *_W, double *Y, double *dX) {
+    double adaptive = createAdaptive(Y, _W->height);
+    for (int heightIndex = 0; heightIndex < _W->height; heightIndex++) {
+        for (int widthIndex = 0; widthIndex < _W->width; widthIndex++) {
+            _W->mas[heightIndex][widthIndex] -= adaptive * Y[heightIndex] * dX[widthIndex];
+        }
+    }
+}
+
+double createAdaptive(double *block, int width) {
+    double sum = 0.0;
+    for (int widthIndex = 0; widthIndex < width; widthIndex++) {
+        sum = sum + pow(block[widthIndex], 2);
+    }
+    return 1.0 / sum;
 }
 
 
