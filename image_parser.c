@@ -87,9 +87,9 @@ void formImage(MatrixOfImage *matrixOfImage) {
             unsigned char red = matrixOfImage->matrixOfPixels[heightIndex][widthIndex].red;
             unsigned char green = matrixOfImage->matrixOfPixels[heightIndex][widthIndex].green;
             unsigned char blue = matrixOfImage->matrixOfPixels[heightIndex][widthIndex].blue;
-            fwrite(&blue, 1, 1, file);
-            fwrite(&green, 1, 1, file);
             fwrite(&red, 1, 1, file);
+            fwrite(&green, 1, 1, file);
+            fwrite(&blue, 1, 1, file);
         }
     }
     fclose(file);

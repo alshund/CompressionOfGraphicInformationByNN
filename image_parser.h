@@ -20,9 +20,7 @@ typedef struct
     unsigned short	bfReserved2;
     unsigned long	bfOffBits;
 } BmpHeader;
-#pragma pack(pop)
 
-#pragma pack(push, 1)
 typedef struct
 {
     int headerSize;
@@ -38,7 +36,6 @@ typedef struct
     unsigned int importantColors;
 
 } BmpImageInfo;
-#pragma pack(pop)
 
 typedef struct {
     unsigned char red;
@@ -48,7 +45,6 @@ typedef struct {
 } RGB;
 #pragma pack(pop)
 
-#pragma pack(push, 1)
 typedef struct {
     RGB **matrixOfPixels;
     unsigned int height;

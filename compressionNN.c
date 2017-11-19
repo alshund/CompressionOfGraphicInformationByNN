@@ -23,9 +23,9 @@ void startCompression(char *imagePath, unsigned int rectangleHeight, unsigned in
 
     Matrix *dX = createMatrix_X(Y, _W);
 
-//    startLearn(X, W, Y, _W, _X, dX);
+    startLearn(X, W, Y, _W, _X, dX);
 
-    MatrixOfImage *result = toMatrixOfImage(X, matrixOfImage->height, matrixOfImage->width, rectangleHeight, rectangleWidth);
+    MatrixOfImage *result = toMatrixOfImage(_X, matrixOfImage->height, matrixOfImage->width, rectangleHeight, rectangleWidth);
 
     formImage(result);
 }
@@ -135,7 +135,7 @@ double** createMasW(int height, int width) {
     for (int indexHieght = 0; indexHieght < height; indexHieght++) {
         mas[indexHieght] = malloc(sizeof(double) * width);
         for (int indexWidth = 0; indexWidth < width; indexWidth++) {
-            mas[indexHieght][indexWidth] = getRandom(-1.0, 1.0);
+            mas[indexHieght][indexWidth] = getRandom(-0.1, 0.1);
         }
     }
     return mas;
@@ -212,7 +212,6 @@ void startLearn(Matrix *X, Matrix *W, Matrix *Y, Matrix *_W, Matrix *_X, Matrix 
         dev = getDeviation(dX);
         printf("%f\n", dev);
     } while(dev >= 0.1 * W->width);
-    printf("%f\n%f\n", X->mas[0][0], _X->mas[0][0]);
 }
 
 void adjustmentY(Matrix *Y, int currentBlock, Matrix *X, Matrix *W) {
