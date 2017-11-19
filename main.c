@@ -3,7 +3,7 @@
 #include "compressionNN.h"
 
 int main() {
-    char *imagePath = {"image.bmp"};
+    char *imagePath = {"resource/image2.bmp"};
     int rectangleHeight;
     int rectangleWidth;
     printf("Rectangle height:\n");

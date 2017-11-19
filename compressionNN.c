@@ -7,14 +7,13 @@
 #include <time.h>
 #include <math.h>
 #include "compressionNN.h"
-#include "image_parser.h"
 
 void startCompression(char *imagePath, unsigned int rectangleHeight, unsigned int rectangleWidth) {
     MatrixOfImage *matrixOfImage = getMatrixOfImage(imagePath);
 
     Matrix *X = createMatrixX(matrixOfImage, rectangleHeight, rectangleWidth);
 
-    Matrix *W = createMatrixW(X->width, 15);
+    Matrix *W = createMatrixW(X->width, 100);
 
     Matrix *Y = createMatrixY(X, W);
 
@@ -24,15 +23,17 @@ void startCompression(char *imagePath, unsigned int rectangleHeight, unsigned in
 
     Matrix *dX = createMatrix_X(Y, _W);
 
-    startLearn(X, W, Y, _W, _X, dX);
-//    double E = getDeviation(X, _X);
-//    printf("%f\n", E);
+//    startLearn(X, W, Y, _W, _X, dX);
+
+    MatrixOfImage *result = toMatrixOfImage(X, matrixOfImage->height, matrixOfImage->width, rectangleHeight, rectangleWidth);
+
+    formImage(result);
 }
 
 Matrix* createMatrixX(MatrixOfImage *matrixOfImage, int rectangleHeight, int rectangleWidth){
     Matrix *X = malloc(sizeof(Matrix));
     X->height = matrixOfImage->height / rectangleHeight * matrixOfImage->width / rectangleWidth;
-    X->width = rectangleHeight * rectangleWidth * 3;
+    X->width = (unsigned int) (rectangleHeight * rectangleWidth * 3);
     X->mas = createMasX(matrixOfImage, X->height, X->width, rectangleHeight, rectangleWidth);
     return X;
 }
@@ -74,6 +75,52 @@ double getConvertColor(unsigned char color) {
     return color / 255.0 * 2 - 1;
 }
 
+unsigned char toRGB(double convertedColor) {
+    return (unsigned char) (((convertedColor + 1) / 2.0) * 255);
+}
+
+MatrixOfImage* toMatrixOfImage(Matrix *_X, unsigned int iHeight, unsigned int iWidth, unsigned int rectangleHeight, unsigned int rectangleWidth) {
+    MatrixOfImage *matrixOfImage = malloc(sizeof(MatrixOfImage));
+    matrixOfImage->height = iHeight;
+    matrixOfImage->width = iWidth;
+    matrixOfImage->matrixOfPixels = toMatrixOfPixels(_X, iHeight, iWidth, rectangleHeight, rectangleWidth);
+    return matrixOfImage;
+}
+
+RGB** toMatrixOfPixels(Matrix *_X, unsigned int iHeight, unsigned int iWidth, unsigned int rectangleHeight, unsigned int rectangleWidth) {
+    int _xHeightIndex = 0;
+    int _xWidthIndex = 0;
+    int rowNumber = 0;
+    int blockNumber = 0;
+
+    RGB **matrixOfPixels = malloc(sizeof(RGB*) * iHeight);
+    for (int iHieghtIndex = 0; iHieghtIndex < iHeight; iHieghtIndex++) {
+
+        matrixOfPixels[iHieghtIndex] = malloc(sizeof(RGB) * iWidth);
+        for (int iWidthIndex = 0; iWidthIndex < iWidth; iWidthIndex++) {
+
+            matrixOfPixels[iHieghtIndex][iWidthIndex].red = toRGB(_X->mas[_xHeightIndex][_xWidthIndex++]);
+            matrixOfPixels[iHieghtIndex][iWidthIndex].green = toRGB(_X->mas[_xHeightIndex][_xWidthIndex++]);
+            matrixOfPixels[iHieghtIndex][iWidthIndex].blue = toRGB(_X->mas[_xHeightIndex][_xWidthIndex++]);
+
+            if (_xWidthIndex % rectangleWidth * 3 == 0) {
+                _xWidthIndex = rowNumber * rectangleWidth * 3;
+                _xHeightIndex++;
+            }
+        }
+        ++rowNumber;
+        if (rowNumber % rectangleHeight == 0) {
+            rowNumber = 0;
+            blockNumber += iWidth / rectangleWidth;
+            _xWidthIndex = rowNumber;
+            _xHeightIndex = blockNumber;
+        } else {
+            _xHeightIndex = blockNumber;
+        }
+    }
+    return matrixOfPixels;
+}
+
 Matrix* createMatrixW(int height, int width) {
     Matrix *W = malloc(sizeof(Matrix));
     W->height = height;
@@ -106,7 +153,6 @@ Matrix* createMatrixY(Matrix *X, Matrix *W) {
     for (int indexHeight = 0; indexHeight < Y->height; indexHeight++) {
         Y->mas[indexHeight] = malloc(sizeof(double) * Y->width);
     }
-//            multiplication(X->mas, W->mas, Y->height, Y->width, X->width);
     return Y;
 }
 
@@ -137,7 +183,6 @@ Matrix* createMatrix_X(Matrix *Y, Matrix *_W) {
     for (int indexHeight = 0; indexHeight < _X->height; indexHeight++) {
         _X->mas[indexHeight] = malloc(sizeof(double) * _X->width);
     }
-//            multiplication(Y->mas, _W->mas, _X->height, _W->width, Y->width);
     return _X;
 }
 
@@ -158,20 +203,11 @@ void startLearn(Matrix *X, Matrix *W, Matrix *Y, Matrix *_W, Matrix *_X, Matrix 
     do {
         printf("Iteration %d\n", iteration++);
         for (int heightIndex = 0; heightIndex < X->height; heightIndex++) {
-            if (iteration == 3985) {
-                printf("");
-            }
             adjustmentY(Y, heightIndex, X, W);
             adjustment_X(_X, heightIndex, Y, _W);
             adjustment_dX(dX, heightIndex, _X, X);
             adjustment_W(_W, heightIndex, Y, dX);
             adjustmentW(W, heightIndex, X, dX, _W, mass);
-
-//            Y->mas[heightIndex] = multiplication(X->mas[heightIndex], W->mas, W->width, X->width);
-//            _X->mas[heightIndex] = multiplication(Y->mas[heightIndex], _W->mas, _W->width, Y->width);
-//            dX->mas[heightIndex] = difference(X->mas[heightIndex], _X->mas[heightIndex], X->width);
-//            adjustmentSecondLayer(_W, Y->mas[heightIndex], dX->mas[heightIndex]);
-//            adjustmentFirstLayer(W, X->mas[heightIndex], dX->mas[heightIndex], _W);
         }
         dev = getDeviation(dX);
         printf("%f\n", dev);
@@ -214,7 +250,6 @@ void adjustment_W(Matrix *_W, int currentBlock, Matrix *Y, Matrix *dX) {
 
 void adjustmentW(Matrix *W, int currentBlock, Matrix *X, Matrix *dX, Matrix *_W, double *mass) {
     double adaptive = createAdaptive(X->mas[currentBlock], X->width);
-
     for (int indexHeight = 0; indexHeight < _W->height; indexHeight++) {
         mass[indexHeight] = 0.0;
         for (int indexWidth = 0; indexWidth < _W->width; indexWidth++) {
@@ -275,7 +310,7 @@ void adjustmentSecondLayer(Matrix *_W, double *Y, double *dX) {
 }
 
 double createAdaptive(double *block, int width) {
-    double sum = 0.0;
+    double sum = 2304.0;//TODO: P * N;
     for (int widthIndex = 0; widthIndex < width; widthIndex++) {
         sum = sum + pow(block[widthIndex], 2);
     }

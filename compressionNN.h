@@ -7,7 +7,6 @@
 
 #include "image_parser.h"
 
-
 typedef struct {
     double **mas;
     unsigned int height;
@@ -15,13 +14,14 @@ typedef struct {
 } Matrix;
 
 void startCompression(char *image_path, unsigned int rectangleHeight, unsigned int rectangleWidth);
-
 Matrix* createMatrixX(MatrixOfImage *matrixOfImage, int rectangleHeight, int rectangleWidth);
 double** createMasX(MatrixOfImage *matrixOfImage, int height, int width, int rectangleHeight, int recTangleWidth);
 double* createBlock(RGB **matrixOfPixels, int startHeight, int finalHeight, int startWidth, int finalWidth, int width);
 double getConvertColor(unsigned char color);
 double getRandom(double min, double max);
-
+MatrixOfImage* toMatrixOfImage(Matrix *X, unsigned int iHeight, unsigned int iWidth, unsigned int rectangleHeight, unsigned int rectangleWidth);
+RGB** toMatrixOfPixels(Matrix *_X, unsigned int iHeight, unsigned int iWidth, unsigned int rectangleHeight, unsigned int rectangleWidth);
+unsigned char toRGB(double convertedColor);
 Matrix* createMatrixW(int height, int width);
 double** createMasW(int height, int width);
 
